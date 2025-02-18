@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Dictionary</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #6e8efb, #ff6b6b);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #6e8efb;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: #6e8efb;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #5c7cfa;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 5px;
+            background: #f8f9fa;
+        }
+
+        .word-title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .phonetic {
+            font-size: 16px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .part-of-speech {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .pos-title {
+            font-weight: bold;
+            color: #6e8efb;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .definitions {
+            padding-left: 20px;
+        }
+
+        .definition {
+            margin-bottom: 10px;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .error {
+            color: #ff6b6b;
+            text-align: center;
+            font-size: 16px;
+            padding: 15px;
+            background: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+        }
+
+        .suggestions {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 5px;
+        }
+
+        .suggestion {
+            color: #6e8efb;
+            cursor: pointer;
+            margin-right: 10px;
+            text-decoration: underline;
+        }
+
+        .suggestion:hover {
+            color: #5c7cfa;
+        }
+
+        .recent-searches {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+
+        .recent-title {
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .recent-word {
+            display: inline-block;
+            margin: 5px;
+            padding: 5px 10px;
+            background: #e9ecef;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .recent-word:hover {
+            background: #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Smart Dictionary</h1>
+        <div class="search-box">
+            <input type="text" id="word-input" placeholder="Enter a word..." onkeypress="handleKeyPress(event)">
+            <button onclick="lookupWord()">Search</button>
+        </div>
+        <div id="result" class="result"></div>
+        <div id="recent-searches" class="recent-searches">
+            <div class="recent-title">Recent Searches</div>
+            <div id="recent-words"></div>
+        </div>
+    </div>
+
+    <script>
+        let recentSearches = [];
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                lookupWord();
+            }
+        }
+
+        function addToRecent(word) {
+            if (!recentSearches.includes(word)) {
+                recentSearches.unshift(word);
+                if (recentSearches.length > 5) {
+                    recentSearches.pop();
+                }
+                updateRecentSearches();
+            }
+        }
+
+        function updateRecentSearches() {
+            const recentWordsDiv = document.getElementById('recent-words');
+            recentWordsDiv.innerHTML = recentSearches
+                .map(word => `<span class="recent-word" onclick="searchWord('${word}')">${word}</span>`)
+                .join('');
+        }
+
+        function searchWord(word) {
+            document.getElementById('word-input').value = word;
+            lookupWord();
+        }
+
+        async function lookupWord() {
+            const word = document.getElementById('word-input').value.trim();
+            const resultDiv = document.getElementById('result');
+            
+            if (!word) {
+                resultDiv.innerHTML = '<div class="error">Please enter a word</div>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<div class="loading">Looking up the word...</div>';
+
+            try {
+                const response = await fetch(`http://localhost:5000/lookup/${word}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    let html = `
+                        <div class="word-title">
+                            ${data.word}
+                            ${data.phonetic ? `<span class="phonetic">${data.phonetic}</span>` : ''}
+                        </div>
+                    `;
+                    
+                    // Show definitions
+                    for (const [pos, definitions] of Object.entries(data.meanings)) {
+                        html += `
+                            <div class="part-of-speech">
+                                <div class="pos-title">${pos}</div>
+                                <div class="definitions">
+                                    ${definitions.map(def => `<div class="definition">• ${def}</div>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    resultDiv.innerHTML = html;
+                    addToRecent(data.word);
+                } else {
+                    let errorHtml = `<div class="error">${data.message}</div>`;
+                    
+                    if (data.suggestions && data.suggestions.length > 0) {
+                        errorHtml += `
+                            <div class="suggestions">
+                                <div class="suggestions-title">Did you mean:</div>
+                                ${data.suggestions.map(suggestion => 
+                                    `<span class="suggestion" onclick="searchWord('${suggestion}')">${suggestion}</span>`
+                                ).join('')}
+                            </div>
+                        `;
+                    }
+                    
+                    resultDiv.innerHTML = errorHtml;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="error">Error connecting to the server. Please try again.</div>';
+            }
+        }
+    </script>
+</body>
+</html>
