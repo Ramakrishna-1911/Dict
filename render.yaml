@@ -3,4 +3,8 @@ services:
     name: dictionary-app
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn -b 0.0.0.0:$PORT app:app
+    envVars:
+      - key: PORT
+        value: 10000
+    healthCheckPath: /health
