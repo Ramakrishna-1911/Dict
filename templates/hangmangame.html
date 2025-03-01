@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modern Hangman</title>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --secondary: #ec4899;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --text: #1e293b;
+      --text-light: #64748b;
+      --bg: #f8fafc;
+      --bg-card: #ffffff;
+      --border: #e2e8f0;
+      --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --radius: 0.5rem;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.6;
+    }
+    
+    .container {
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    
+    header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: white;
+      padding: 2rem 0;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    
+    header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      font-weight: 800;
+    }
+    
+    header p {
+      opacity: 0.9;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    .game-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      padding: 2rem 0;
+    }
+    
+    .game-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    
+    .stats {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .stat-card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 0.75rem 1.25rem;
+      box-shadow: var(--shadow);
+      min-width: 100px;
+      text-align: center;
+    }
+    
+    .stat-card .value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary);
+      display: block;
+    }
+    
+    .stat-card .label {
+      font-size: 0.875rem;
+      color: var(--text-light);
+    }
+    
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+    
+    @media (max-width: 768px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    
+    .card-header {
+      background: var(--primary);
+      color: white;
+      padding: 1rem 1.5rem;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .card-body {
+      padding: 1.5rem;
+    }
+    
+    .hangman-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    
+    .hangman-svg {
+      width: 200px;
+      height: 220px;
+      background: var(--bg);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    
+    .hangman-part {
+      stroke: var(--text);
+      stroke-width: 3;
+      fill: transparent;
+    }
+    
+    .timer-display {
+      background: var(--bg);
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    
+    .difficulty-selector {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .difficulty-btn {
+      background: var(--bg);
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .difficulty-btn:hover {
+      background: rgba(99, 102, 241, 0.1);
+    }
+    
+    .difficulty-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .word-display {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: center;
+      margin: 2rem 0;
+    }
+    
+    .letter-box {
+      width: 40px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      border-bottom: 3px solid var(--text);
+      transition: all 0.3s;
+    }
+    
+    .letter-box.guessed {
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateY(-5px);
+    }
+    
+    .keyboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+      gap: 0.5rem;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    
+    .key {
+      background: var(--bg);
+      border: none;
+      color: var(--text);
+      font-size: 1.2rem;
+      padding: 0.75rem 0;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 600;
+    }
+    
+    .key:hover:not(:disabled) {
+      background: var(--primary);
+      color: white;
+      transform: translateY(-2px);
+    }
+    
+    .key:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .key.correct {
+      background: var(--success);
+      color: white;
+    }
+    
+    .key.incorrect {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .hint-container {
+      margin-bottom: 1.5rem;
+      background: var(--bg);
+      padding: 1rem;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .hint-text {
+      flex: 1;
+      font-style: italic;
+      color: var(--text-light);
+    }
+    
+    .hint-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.2s;
+    }
+    
+    .hint-btn:hover {
+      background: var(--primary-dark);
+      transform: scale(1.1);
+    }
+    
+    .game-controls {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: var(--radius);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 1rem;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-3px);
+      box-shadow: 0 4px 6px rgba(99, 102, 241, 0.25);
+    }
+    
+    .btn-secondary {
+      background: var(--bg);
+      color: var(--text);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--border);
+      transform: translateY(-3px);
+    }
+    
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s;
+    }
+    
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .modal {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      width: 90%;
+      max-width: 500px;
+      box-shadow: var(--shadow);
+      transform: translateY(30px);
+      transition: all 0.3s;
+      overflow: hidden;
+    }
+    
+    .modal-overlay.active .modal {
+      transform: translateY(0);
+    }
+    
+    .modal-header {
+      background: var(--primary);
+      color: white;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    
+    .modal-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+    
+    .modal-body {
+      padding: 1.5rem;
+      text-align: center;
+    }
+    
+    .modal-result {
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+      color: var(--text-light);
+    }
+    
+    .modal-word {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      letter-spacing: 2px;
+    }
+    
+    .modal-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    
+    .modal-stat {
+      background: var(--bg);
+      padding: 1rem;
+      border-radius: var(--radius);
+    }
+    
+    .modal-stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    
+    .modal-stat-label {
+      font-size: 0.875rem;
+      color: var(--text-light);
+    }
+    
+    .modal-footer {
+      padding: 1rem 1.5rem;
+      text-align: center;
+      background: var(--bg);
+    }
+    
+    .notification {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 1rem 1.5rem;
+      border-radius: var(--radius);
+      color: white;
+      font-weight: 600;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s;
+      z-index: 1000;
+      box-shadow: var(--shadow);
+      max-width: 300px;
+    }
+    
+    .notification.success {
+      background: var(--success);
+    }
+    
+    .notification.error {
+      background: var(--danger);
+    }
+    
+    .notification.info {
+      background: var(--primary);
+    }
+    
+    .notification.warning {
+      background: var(--warning);
+    }
+    
+    .notification.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .category-selector {
+      margin-bottom: 1.5rem;
+    }
+    
+    .select-container {
+      position: relative;
+    }
+    
+    .select-container select {
+      appearance: none;
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius);
+      border: 2px solid var(--border);
+      background: var(--bg-card);
+      font-size: 1rem;
+      color: var(--text);
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s;
+    }
+    
+    .select-container select:focus {
+      border-color: var(--primary);
+    }
+    
+    .select-container::after {
+      content: '▼';
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-light);
+      pointer-events: none;
+      font-size: 0.8rem;
+    }
+    
+    .row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .col {
+      flex: 1;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: var(--text-light);
+    }
+    
+    /* Animation effects */
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.05);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+    
+    .pulse {
+      animation: pulse 1s infinite;
+    }
+    
+    @keyframes float {
+      0% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-10px);
+      }
+      100% {
+        transform: translateY(0px);
+      }
+    }
+    
+    .float {
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes confetti-fall {
+      0% {
+        transform: translateY(-10px) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+    
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      opacity: 0.8;
+      animation: confetti-fall 3s ease-in-out forwards;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>Modern Hangman</h1>
+      <p>Challenge your vocabulary and save the stick figure before it's too late!</p>
+    </div>
+  </header>
+  
+  <div class="container">
+    <div class="game-wrapper">
+      <div class="game-header">
+        <div class="stats">
+          <div class="stat-card">
+            <span class="value" id="lives-count">6</span>
+            <span class="label">Lives</span>
+          </div>
+          <div class="stat-card">
+            <span class="value" id="score">0</span>
+            <span class="label">Score</span>
+          </div>
+        </div>
+        
+        <div class="timer-display">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span id="timer">02:00</span>
+        </div>
+      </div>
+      
+      <div class="main-grid">
+        <div class="card">
+          <div class="card-header">
+            <span>Hangman</span>
+          </div>
+          <div class="card-body">
+            <div class="hangman-container">
+              <svg class="hangman-svg" viewBox="0 0 200 220">
+                <!-- Gallows -->
+                <line x1="40" y1="200" x2="160" y2="200" class="hangman-part" style="stroke-width: 3;"></line>
+                <line x1="60" y1="200" x2="60" y2="20" class="hangman-part" style="stroke-width: 3;"></line>
+                <line x1="60" y1="20" x2="140" y2="20" class="hangman-part" style="stroke-width: 3;"></line>
+                <line x1="140" y1="20" x2="140" y2="50" class="hangman-part" style="stroke-width: 3;"></line>
+                
+                <!-- Head -->
+                <circle cx="140" cy="70" r="20" class="hangman-part" id="head" style="display: none;"></circle>
+                
+                <!-- Body -->
+                <line x1="140" y1="90" x2="140" y2="150" class="hangman-part" id="body" style="display: none;"></line>
+                
+                <!-- Left Arm -->
+                <line x1="140" y1="110" x2="110" y2="130" class="hangman-part" id="left-arm" style="display: none;"></line>
+                
+                <!-- Right Arm -->
+                <line x1="140" y1="110" x2="170" y2="130" class="hangman-part" id="right-arm" style="display: none;"></line>
+                
+                <!-- Left Leg -->
+                <line x1="140" y1="150" x2="120" y2="180" class="hangman-part" id="left-leg" style="display: none;"></line>
+                
+                <!-- Right Leg -->
+                <line x1="140" y1="150" x2="160" y2="180" class="hangman-part" id="right-leg" style="display: none;"></line>
+              </svg>
+              
+              <div id="word-display" class="word-display">
+                <!-- Letter boxes will be added here dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <span>Game Controls</span>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col">
+                <div class="category-selector">
+                  <label for="category">Category</label>
+                  <div class="select-container">
+                    <select id="category">
+                      <option value="animals">Animals</option>
+                      <option value="fruits">Fruits</option>
+                      <option value="countries">Countries</option>
+                      <option value="programming">Programming</option>
+                      <option value="sports">Sports</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="difficulty-selector">
+              <button class="difficulty-btn active" data-difficulty="easy">Easy</button>
+              <button class="difficulty-btn" data-difficulty="medium">Medium</button>
+              <button class="difficulty-btn" data-difficulty="hard">Hard</button>
+            </div>
+            
+            <div class="hint-container">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+              <span id="hint-text" class="hint-text">Hint will appear here</span>
+              <button id="reveal-hint" class="hint-btn">?</button>
+            </div>
+            
+            <div id="keyboard" class="keyboard">
+              <!-- Keyboard keys will be added here dynamically -->
+            </div>
+            
+            <div class="game-controls">
+              <button id="new-game-btn" class="btn btn-primary">New Game</button>
+              <button id="hint-btn" class="btn btn-secondary">Get Hint</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div id="modal-overlay" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-title" class="modal-title">Game Over</h2>
+      </div>
+      <div class="modal-body">
+        <p id="modal-result" class="modal-result">Better luck next time!</p>
+        <p>The word was:</p>
+        <div id="modal-word" class="modal-word">EXAMPLE</div>
+        
+        <div class="modal-stats">
+          <div class="modal-stat">
+            <div id="modal-score" class="modal-stat-value">0</div>
+            <div class="modal-stat-label">Score</div>
+          </div>
+          <div class="modal-stat">
+            <div id="modal-time" class="modal-stat-value">01:45</div>
+            <div class="modal-stat-label">Time</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="play-again-btn" class="btn btn-primary">Play Again</button>
+      </div>
+    </div>
+  </div>
+  
+  <div id="notification" class="notification">
+    This is a notification message
+  </div>
+  
+  <script>
+    // Game data
+    const words = {
+      animals: [
+        { word: "LION", hint: "The king of the jungle" },
+        { word: "ELEPHANT", hint: "The largest land mammal" },
+        { word: "GIRAFFE", hint: "Animal with a very long neck" },
+        { word: "DOLPHIN", hint: "Intelligent marine mammal" },
+        { word: "PENGUIN", hint: "Flightless bird that lives in cold regions" },
+        { word: "TIGER", hint: "Large cat with orange fur and black stripes" },
+        { word: "KANGAROO", hint: "Australian animal that hops and has a pouch" }
+      ],
+      fruits: [
+        { word: "APPLE", hint: "Red or green fruit with a core" },
+        { word: "BANANA", hint: "Yellow curved fruit" },
+        { word: "STRAWBERRY", hint: "Red fruit with small seeds on the outside" },
+        { word: "PINEAPPLE", hint: "Tropical fruit with a tough spiky exterior" },
+        { word: "WATERMELON", hint: "Large fruit with red flesh and black seeds" },
+        { word: "MANGO", hint: "Sweet tropical fruit with orange flesh" },
+        { word: "KIWI", hint: "Small brown fruit with green flesh and black seeds" }
+      ],
+      countries: [
+        { word: "BRAZIL", hint: "South American country known for carnival" },
+        { word: "JAPAN", hint: "Island country with cherry blossoms" },
+        { word: "AUSTRALIA", hint: "Country known for kangaroos and koalas" },
+        { word: "GERMANY", hint: "European country known for beer festivals" },
+        { word: "CANADA", hint: "Country with a maple leaf on its flag" },
+        { word: "ITALY", hint: "Mediterranean country shaped like a boot" },
+        { word: "EGYPT", hint: "North African country with ancient pyramids" }
+      ],
+      programming: [
+        { word: "JAVASCRIPT", hint: "Popular web programming language" },
+        { word: "PYTHON", hint: "Programming language named after a snake" },
+        { word: "DATABASE", hint: "System for storing and organizing data" },
+        { word: "ALGORITHM", hint: "Step-by-step procedure for solving a problem" },
+        { word: "FUNCTION", hint: "Block of code designed to perform a specific task" },
+        { word: "VARIABLE", hint: "Named storage location for data in programming" },
+        { word: "INTERFACE", hint: "Point of interaction between components" }
+      ],
+      sports: [
+        { word: "SOCCER", hint: "Sport played with a round ball and feet" },
+        { word: "BASKETBALL", hint: "Sport where you shoot a ball through a hoop" },
+        { word: "TENNIS", hint: "Sport played with rackets and a ball" },
+        { word: "SWIMMING", hint: "Sport performed in water" },
+        { word: "VOLLEYBALL", hint: "Sport where you hit a ball over a net" },
+        { word: "HOCKEY", hint: "Sport played with sticks and a puck or ball" },
+        { word: "CRICKET", hint: "Sport played with a bat, ball and wickets" }
+      ]
+    };
+    
+    // Game state
+    let currentWord = "";
+    let currentWordHint = "";
+    let guessedLetters = [];
+    let wrongGuesses = 0;
+    let score = 0;
+    let timerInterval;
+    let timeLeft = 120; // 2 minutes
+    let hintsUsed = 0;
+    let difficulty = "easy";
+    let maxLives = 6;
+    
+    // DOM elements
+    const wordDisplay = document.getElementById("word-display");
+    const keyboard = document.getElementById("keyboard");
+    const livesCount = document.getElementById("lives-count");
+    const scoreElement = document.getElementById("score");
+    const timerDisplay = document.getElementById("timer");
+    const newGameBtn = document.getElementById("new-game-btn");
+    const hintBtn = document.getElementById("hint-btn");
+    const hintText = document.getElementById("hint-text");
+    const modalOverlay = document.getElementById("modal-overlay");
+    const modalTitle = document.getElementById("modal-title");
+    const modalResult = document.getElementById("modal-result");
+    const modalWord = document.getElementById("modal-word");
+    const modalScore = document.getElementById("modal-score");
+    const modalTime = document.getElementById("modal-time");
+    const playAgainBtn = document.getElementById("play-again-btn");
+    const notification = document.getElementById("notification");
+    const categorySelect = document.getElementById("category");
+    const difficultyBtns = document.querySelectorAll(".difficulty-btn");
+    const revealHintBtn = document.getElementById("reveal-hint");
+    
+    // Game initialization
+    function initGame() {
+      // Set up difficulty level
+      difficultyBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+          difficultyBtns.forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          difficulty = btn.dataset.difficulty;
+          
+          if (difficulty === "easy") {
+            maxLives = 6;
+          } else if (difficulty === "medium") {
+            maxLives = 5;
+          } else {
+            maxLives = 4;
+          }
+          
+          livesCount.textContent = maxLives;
+          resetGame();
+        });
+      });
+      
+      // Create keyboard
+      createKeyboard();
+      
+      // Set up event listeners
+      newGameBtn.addEventListener("click", resetGame);
+      hintBtn.addEventListener("click", getHint);
+      playAgainBtn.addEventListener("click", () => {
+        modalOverlay.classList.remove("active");
+        resetGame();
+      });
+      revealHintBtn.addEventListener("click", showHint);
+      
+      // Start a new game
+      resetGame();
+    }
+    
+    // Create on-screen keyboard
+    function createKeyboard() {
+      const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      
+      keyboard.innerHTML = "";
+      for (let letter of letters) {
+        const key = document.createElement("button");
+        key.className = "key";
+        key.textContent = letter;
+        key.addEventListener("click", () => handleGuess(letter));
+        keyboard.appendChild(key);
+      }
+      
+      // Add keyboard event listener
+      document.addEventListener("keydown", (e) => {
+        const key = e.key.toUpperCase();
+        if (/^[A-Z]$/.test(key)) {
+          handleGuess(key);
+        }
+      });
+    }
+    
+    // Choose a random word based on category
+    function chooseRandomWord() {
+      const category = categorySelect.value;
+      const wordList = words[category];
+      const randomIndex = Math.floor(Math.random() * wordList.length);
+      
+      return wordList[randomIndex];
+    }
+    
+    // Display the word with guessed letters shown and others hidden
+    function displayWord() {
+      wordDisplay.innerHTML = "";
+      
+      for (let char of currentWord) {
+        const letterBox = document.createElement("div");
+        letterBox.className = "letter-box";
+        
+        if (guessedLetters.includes(char) || char === " ") {
+          letterBox.textContent = char;
+          letterBox.classList.add("guessed");
+        }
+        
+        if (char === " ") {
+          letterBox.style.borderBottom = "none";
+        }
+        
+        wordDisplay.appendChild(letterBox);
+      }
+    }
+    
+    // Handle player's guess
+    function handleGuess(letter) {
+      if (guessedLetters.includes(letter)) {
+        showNotification("You already guessed this letter!", "info");
+        return;
+      }
+      
+      guessedLetters.push(letter);
+      
+      // Get the key element
+      const keyElement = [...keyboard.children].find(key => key.textContent === letter);
+      
+      if (currentWord.includes(letter)) {
+        keyElement.classList.add("correct");
+        keyElement.disabled = true;
+        showNotification("Good guess!", "success");
+        
+        // Check if player has won
+        if (isWordGuessed()) {
+          clearInterval(timerInterval);
+          
+          // Calculate score
+          const timeBonus = Math.floor(timeLeft / 10);
+          const hintPenalty = hintsUsed * 5;
+          const finalScore = Math.max(0, 50 + timeBonus - hintPenalty);
+          
+          score += finalScore;
+          scoreElement.textContent = score;
+          
+          // Show win animation
+          createFlowerAnimation();
+          
+          // Show win modal
+          setTimeout(() => {
+            showResultModal(true);
+          }, 1000);
+        }
+      } else {
+        keyElement.classList.add("incorrect");
+        keyElement.disabled = true;
+        wrongGuesses++;
+        livesCount.textContent = maxLives - wrongGuesses;
+        
+        // Show hangman part
+        const hangmanParts = ["head", "body", "left-arm", "right-arm", "left-leg", "right-leg"];
+        if (wrongGuesses <= hangmanParts.length) {
+          document.getElementById(hangmanParts[wrongGuesses - 1]).style.display = "block";
+        }
+        
+        showNotification("Wrong guess!", "error");
+        
+        // Check if player has lost
+        if (wrongGuesses >= maxLives) {
+          clearInterval(timerInterval);
+          showResultModal(false);
+        }
+      }
+      
+      // Update the displayed word
+      displayWord();
+    }
+    
+    // Check if the word has been completely guessed
+    function isWordGuessed() {
+      for (let char of currentWord) {
+        if (char !== " " && !guessedLetters.includes(char)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    
+    // Reset the game for a new round
+    function resetGame() {
+      // Clear previous state
+      guessedLetters = [];
+      wrongGuesses = 0;
+      hintsUsed = 0;
+      
+      // Reset hangman drawing
+      document.querySelectorAll(".hangman-part").forEach(part => {
+        if (part.id) {
+          part.style.display = "none";
+        }
+      });
+      
+      // Reset keyboard
+      document.querySelectorAll(".key").forEach(key => {
+        key.className = "key";
+        key.disabled = false;
+      });
+      
+      // Choose a new word
+      const wordData = chooseRandomWord();
+      currentWord = wordData.word;
+      currentWordHint = wordData.hint;
+      
+      // Reset lives
+      livesCount.textContent = maxLives;
+      
+      // Display word
+      displayWord();
+      
+      // Hide hint initially
+      hintText.textContent = "Hint hidden. Click the ? button to reveal";
+      
+      // Reset timer
+      clearInterval(timerInterval);
+      timeLeft = 120;
+      updateTimerDisplay();
+      
+      // Start timer
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+        
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          showResultModal(false);
+        }
+      }, 1000);
+    }
+    
+    // Show hint when requested
+    function getHint() {
+      if (hintsUsed < 2) {
+        const unguessedLetters = currentWord.split('').filter(char => 
+          char !== " " && !guessedLetters.includes(char)
+        );
+        
+        if (unguessedLetters.length === 0) {
+          showNotification("You've already guessed all letters!", "info");
+          return;
+        }
+        
+        const randomLetter = unguessedLetters[Math.floor(Math.random() * unguessedLetters.length)];
+        handleGuess(randomLetter);
+        
+        hintsUsed++;
+        showNotification(`Hint used: Letter ${randomLetter} revealed`, "info");
+      } else {
+        showNotification("You've used all your hints!", "error");
+      }
+    }
+    
+    // Show the hint text
+    function showHint() {
+      hintText.textContent = currentWordHint;
+    }
+    
+    // Update timer display
+    function updateTimerDisplay() {
+      const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+      const seconds = (timeLeft % 60).toString().padStart(2, '0');
+      timerDisplay.textContent = `${minutes}:${seconds}`;
+    }
+    
+    // Show result modal
+   // Show result modal
+   function showResultModal(isWin) {
+      modalOverlay.classList.add("active");
+      
+      if (isWin) {
+        modalTitle.textContent = "Congratulations!";
+        modalResult.textContent = "You guessed the word correctly!";
+        createConfetti();
+      } else {
+        modalTitle.textContent = "Game Over";
+        modalResult.textContent = "Better luck next time!";
+      }
+      
+      modalWord.textContent = currentWord;
+      modalScore.textContent = score;
+      
+      const minutes = Math.floor((120 - timeLeft) / 60).toString().padStart(2, '0');
+      const seconds = ((120 - timeLeft) % 60).toString().padStart(2, '0');
+      modalTime.textContent = `${minutes}:${seconds}`;
+    }
+    
+    // Show notification
+    function showNotification(message, type) {
+      notification.textContent = message;
+      notification.className = `notification ${type}`;
+      notification.classList.add("show");
+      
+      setTimeout(() => {
+        notification.classList.remove("show");
+      }, 3000);
+    }
+    
+    // Create confetti animation
+    function createConfetti() {
+      const confettiCount = 100;
+      const colors = ["#3498db", "#2ecc71", "#e74c3c", "#f39c12", "#9b59b6"];
+      
+      for (let i = 0; i < confettiCount; i++) {
+        const confetti = document.createElement("div");
+        confetti.className = "confetti";
+        confetti.style.left = Math.random() * 100 + "vw";
+        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.animationDuration = (Math.random() * 3 + 2) + "s";
+        document.body.appendChild(confetti);
+        
+        setTimeout(() => {
+          confetti.remove();
+        }, 5000);
+      }
+    }
+    
+    // Create flower animation (for winning)
+    function createFlowerAnimation() {
+      const flowerCount = 20;
+      
+      for (let i = 0; i < flowerCount; i++) {
+        const flower = document.createElement("div");
+        flower.className = "flower";
+        flower.style.left = Math.random() * window.innerWidth + "px";
+        flower.style.top = Math.random() * window.innerHeight + "px";
+        document.body.appendChild(flower);
+        
+        setTimeout(() => {
+          flower.remove();
+        }, 1000);
+      }
+    }
+    
+    // Initialize the game when DOM is loaded
+    document.addEventListener("DOMContentLoaded", initGame);
+  </script>
+</body>
+</html>

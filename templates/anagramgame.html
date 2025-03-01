@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anagrams Game</title>
+    <style>
+        :root {
+            --primary: #4e54c8;
+            --secondary: #8f94fb;
+            --success: #28a745;
+            --danger: #dc3545;
+            --light: #f8f9fa;
+            --dark: #343a40;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: var(--light);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+        }
+        
+        h1 {
+            margin-top: 0;
+            color: white;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .game-area {
+            margin: 20px 0;
+        }
+        
+        .word-display {
+            font-size: 36px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin: 20px 0;
+            min-height: 50px;
+            perspective: 1000px;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .letter {
+            display: inline-block;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 5px 12px;
+            margin: 0 2px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+            transform-style: preserve-3d;
+        }
+        
+        .letter.animate {
+            animation: flip 0.6s ease-in-out;
+        }
+        
+        @keyframes flip {
+            0% { transform: rotateY(0); }
+            50% { transform: rotateY(180deg); }
+            100% { transform: rotateY(360deg); }
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 18px;
+            border: none;
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.4);
+        }
+        
+        button {
+            background-color: white;
+            color: var(--primary);
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .result {
+            font-size: 20px;
+            margin: 20px 0;
+            min-height: 30px;
+            font-weight: bold;
+        }
+        
+        .correct {
+            color: #4caf50;
+            animation: pulse 1s ease-in-out;
+        }
+        
+        .incorrect {
+            color: #f44336;
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            font-size: 18px;
+        }
+        
+        .stats span {
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+        
+        .countdown {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Anagrams Game</h1>
+        
+        <div class="stats">
+            <span>Score: <span id="score">0</span></span>
+            <span>Level: <span id="level">1</span></span>
+        </div>
+        
+        <div class="countdown" id="countdown"></div>
+        
+        <div class="game-area">
+            <div class="word-display" id="word-display"></div>
+            
+            <input type="text" id="user-input" placeholder="Enter your anagram..." autocomplete="off">
+            
+            <div class="buttons">
+                <button id="check-btn">Check Anagram</button>
+                <button id="new-word-btn">New Word</button>
+                <button id="hint-btn">Hint</button>
+            </div>
+            
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Word list - common English words
+        const wordList = [
+            "earth", "heart", "listen", "silent", "thread", "feared", "master", "stream", 
+            "night", "thing", "below", "elbow", "cinema", "iceman", "angel", "glean", 
+            "night", "thing", "dusty", "study", "silent", "listen", "state", "taste", 
+            "save", "vase", "now", "won", "evil", "live", "seat", "east", "pots", "stop", 
+            "time", "item", "tap", "pat", "parts", "traps", "wolf", "flow", "dog", "god",
+            "rat", "tar", "cat", "act", "spot", "tops", "team", "meat", "inch", "chin",
+            "care", "race", "mile", "lime", "ate", "eat", "note", "tone", "seat", "east"
+        ];
+        
+        // Game state
+        let currentWord = "";
+        let scrambledWord = "";
+        let score = 0;
+        let level = 1;
+        let timeLeft = 30;
+        let timer;
+        let usedWords = [];
+        
+        // DOM elements
+        const wordDisplay = document.getElementById("word-display");
+        const userInput = document.getElementById("user-input");
+        const checkBtn = document.getElementById("check-btn");
+        const newWordBtn = document.getElementById("new-word-btn");
+        const hintBtn = document.getElementById("hint-btn");
+        const resultEl = document.getElementById("result");
+        const scoreEl = document.getElementById("score");
+        const levelEl = document.getElementById("level");
+        const countdownEl = document.getElementById("countdown");
+        
+        // Initialize game
+        function initGame() {
+            generateNewWord();
+            startTimer();
+            
+            // Event listeners
+            checkBtn.addEventListener("click", checkAnagram);
+            newWordBtn.addEventListener("click", generateNewWord);
+            hintBtn.addEventListener("click", showHint);
+            userInput.addEventListener("keypress", (e) => {
+                if (e.key === "Enter") {
+                    checkAnagram();
+                }
+            });
+        }
+        
+        // Generate a new word
+        function generateNewWord() {
+            clearResult();
+            userInput.value = "";
+            
+            // If we've used all words, reset the used words array
+            if (usedWords.length >= wordList.length) {
+                usedWords = [];
+            }
+            
+            // Get a random word that hasn't been used yet
+            let newWord;
+            do {
+                const randomIndex = Math.floor(Math.random() * wordList.length);
+                newWord = wordList[randomIndex];
+            } while (usedWords.includes(newWord));
+            
+            usedWords.push(newWord);
+            currentWord = newWord;
+            
+            // Create scrambled version
+            scrambledWord = scrambleWord(currentWord);
+            
+            // Display scrambled word with animation
+            displayWord(scrambledWord);
+        }
+        
+        // Scramble a word
+        function scrambleWord(word) {
+            const wordArray = word.split("");
+            let scrambled;
+            
+            // Keep scrambling until we get a different arrangement
+            do {
+                scrambled = [...wordArray];
+                for (let i = scrambled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [scrambled[i], scrambled[j]] = [scrambled[j], scrambled[i]];
+                }
+            } while (scrambled.join("") === word);
+            
+            return scrambled.join("");
+        }
+        
+        // Display word with animation
+        function displayWord(word) {
+            wordDisplay.innerHTML = "";
+            
+            // Create letter elements with staggered animation
+            word.split("").forEach((letter, index) => {
+                const letterEl = document.createElement("span");
+                letterEl.classList.add("letter");
+                letterEl.textContent = letter;
+                
+                setTimeout(() => {
+                    letterEl.classList.add("animate");
+                }, index * 100);
+                
+                wordDisplay.appendChild(letterEl);
+            });
+        }
+        
+        // Check if user input is an anagram of the current word
+        function checkAnagram() {
+            const userWord = userInput.value.trim().toLowerCase();
+            
+            if (!userWord) {
+                showResult("Please enter a word", "incorrect");
+                return;
+            }
+            
+            if (userWord === scrambledWord) {
+                showResult("That's the same as the scrambled word!", "incorrect");
+                return;
+            }
+            
+            if (userWord.length !== currentWord.length) {
+                showResult("Your word has a different length", "incorrect");
+                return;
+            }
+            
+            if (isAnagram(userWord, currentWord)) {
+                if (userWord === currentWord) {
+                    showResult("Correct! That's the original word!", "correct");
+                    updateScore(10);
+                } else {
+                    showResult("Good job! That's a valid anagram!", "correct");
+                    updateScore(5);
+                }
+            } else {
+                showResult("Not a valid anagram. Try again!", "incorrect");
+            }
+        }
+        
+        // Check if two words are anagrams
+        function isAnagram(word1, word2) {
+            if (word1.length !== word2.length) return false;
+            
+            const sortedWord1 = word1.split("").sort().join("");
+            const sortedWord2 = word2.split("").sort().join("");
+            
+            return sortedWord1 === sortedWord2;
+        }
+        
+        // Show result message
+        function showResult(message, className) {
+            resultEl.textContent = message;
+            resultEl.className = "result " + className;
+            
+            // Clear result after 3 seconds
+            setTimeout(clearResult, 3000);
+        }
+        
+        // Clear result message
+        function clearResult() {
+            resultEl.textContent = "";
+            resultEl.className = "result";
+        }
+        
+        // Update score
+        function updateScore(points) {
+            score += points;
+            scoreEl.textContent = score;
+            
+            // Level up every 30 points
+            const newLevel = Math.floor(score / 30) + 1;
+            if (newLevel > level) {
+                level = newLevel;
+                levelEl.textContent = level;
+                resetTimer();
+            }
+            
+            // Generate new word after correct answer
+            setTimeout(generateNewWord, 1500);
+        }
+        
+        // Show hint
+        function showHint() {
+            // Reduce score for using a hint
+            updateScore(-2);
+            
+            // Show the first letter of the original word
+            showResult(`Hint: The first letter is "${currentWord[0]}"`, "");
+        }
+        
+        // Start countdown timer
+        function startTimer() {
+            clearInterval(timer);
+            updateTimerDisplay();
+            
+            timer = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    showResult("Time's up! Try a new word.", "incorrect");
+                    setTimeout(generateNewWord, 1500);
+                    resetTimer();
+                }
+            }, 1000);
+        }
+        
+        // Reset timer
+        function resetTimer() {
+            timeLeft = 30 + (level - 1) * 5; // Add 5 seconds per level
+            clearInterval(timer);
+            startTimer();
+        }
+        
+        // Update timer display
+        function updateTimerDisplay() {
+            countdownEl.textContent = `Time: ${timeLeft}s`;
+            
+            // Change color when time is running low
+            if (timeLeft <= 10) {
+                countdownEl.style.color = "#f44336";
+            } else {
+                countdownEl.style.color = "white";
+            }
+        }
+        
+        // Initialize the game when the page loads
+        window.addEventListener("load", initGame);
+    </script>
+</body>
+</html>

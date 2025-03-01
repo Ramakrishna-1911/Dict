@@ -146,7 +146,21 @@ def get_word_of_the_day():
 def home():
     """Render the main page"""
     return render_template('index.html')
-
+@app.route('/hangman')
+def hangmangame():
+    return render_template('hangmangame.html')
+@app.route('/puzzle')
+def puzzlegame():
+    return render_template('puzzlegame.html')
+@app.route('/scrabble')
+def scrabblegame():
+    return render_template('scrabblegame.html')
+@app.route('/wordgame')
+def wordgame():
+    return render_template('wordgame.html')
+@app.route('/anagram')
+def anagramgame():
+    return render_template('anagramgame.html')
 @app.route('/lookup/<word>')
 def lookup_word(word):
     """API endpoint to look up a word"""

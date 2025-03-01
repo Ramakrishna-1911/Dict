@@ -100,10 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
         openModal(thesaurusModal);
     });
     
-    gamesLink.addEventListener('click', function(e) {
-        e.preventDefault();
-        openModal(gamesModal);
-    });
+    
     
     aboutLink.addEventListener('click', function(e) {
         e.preventDefault();
